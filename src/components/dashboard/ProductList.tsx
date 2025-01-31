@@ -13,6 +13,11 @@ interface Product {
   age?: number;
   inStock: boolean;
   description?: string;
+  offers?: Array<{
+    id: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+  }>;
 }
 
 interface ProductListProps {
@@ -77,6 +82,20 @@ const ProductList = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
+                {product.offers?.length > 0 && (
+                  <div className="space-x-2">
+                    {product.offers.map((offer) => (
+                      <Badge
+                        key={offer.id}
+                        variant="secondary"
+                        className="bg-green-100 text-green-800"
+                      >
+                        {offer.discountValue}
+                        {offer.discountType === "percentage" ? "%" : "$"} OFF
+                      </Badge>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-bold">
                     ${product.price.toFixed(2)}
