@@ -2,20 +2,24 @@ import React, { useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import ProductList from "@/components/dashboard/ProductList";
 import AddProductDialog from "@/components/dashboard/AddProductDialog";
-import { useToast } from "@/components/ui/use-toast";
+import { useProducts } from "@/hooks/useProducts";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const ProductsPage = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const { toast } = useToast();
+  const { products, isLoading, createProduct, toggleProductStock } =
+    useProducts();
 
-  const handleAddProduct = (newProduct) => {
-    toast({
-      title: "Product Created",
-      description: `${newProduct.name} has been successfully created.`,
-    });
-    // In a real app, you would add this to your products list
-    console.log("New product created:", newProduct);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex">
+        <Sidebar />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <LoadingSpinner />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -25,12 +29,45 @@ const ProductsPage = () => {
           <h1 className="text-3xl font-bold">Products</h1>
         </div>
 
-        <ProductList onAddProduct={() => setShowAddProduct(true)} />
+        <ProductList
+          products={products}
+          onAddProduct={() => setShowAddProduct(true)}
+          onToggleStock={({ id, inStock }) =>
+            toggleProductStock.mutate({ id, inStock })
+          }
+        />
 
         <AddProductDialog
           open={showAddProduct}
           onOpenChange={setShowAddProduct}
-          onSubmit={handleAddProduct}
+          onSubmit={(data) => {
+            createProduct.mutate({
+              name: data.name,
+              type: data.type,
+              description: data.description,
+              bottle_price: data.bottlePrice,
+              bottle_size: parseInt(data.bottleSize),
+              age: data.age ? parseInt(data.age) : undefined,
+              serving_sizes: [
+                {
+                  size: 45,
+                  price: parseFloat(data.servingSizes.small.price),
+                  size_type: "small",
+                },
+                {
+                  size: 60,
+                  price: parseFloat(data.servingSizes.medium.price),
+                  size_type: "medium",
+                },
+                {
+                  size: 90,
+                  price: parseFloat(data.servingSizes.large.price),
+                  size_type: "large",
+                },
+              ],
+            });
+            setShowAddProduct(false);
+          }}
         />
       </main>
     </div>
