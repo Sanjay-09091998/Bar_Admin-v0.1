@@ -11,7 +11,7 @@ interface HomeProps {
 
 const Home = ({ collapsed = false }: HomeProps) => {
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-background flex">
       <Sidebar collapsed={collapsed} />
       <main className="flex-1 p-6 space-y-6 overflow-y-auto">
         <div className="flex items-center justify-between">

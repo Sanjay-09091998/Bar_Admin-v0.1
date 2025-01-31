@@ -21,65 +21,25 @@ import {
 } from "@/components/ui/table";
 import BarFilters from "./BarFilters";
 
-interface Bar {
-  id: string;
-  name: string;
-  type: string;
-  locality: string;
-  rating: number;
-  status: "active" | "inactive";
-  sales: number;
-  address?: string;
-  phone?: string;
-  email?: string;
-  openingHours?: string;
-}
+import { type Bar } from "@/lib/api/bars";
 
 interface BarListProps {
   bars?: Bar[];
+  onViewDetails?: (bar: Bar) => void;
   onEdit?: (bar: Bar) => void;
   onDelete?: (bar: Bar) => void;
-  onStatusChange?: (bar: Bar, status: "active" | "inactive") => void;
+  onStatusChange?: (bar: Bar, status: string) => void;
 }
 
 const BarList = ({
+  bars = [],
   onViewDetails = () => {},
-  selectedBar = null,
-  bars = [
-    {
-      id: "1",
-      name: "Downtown Pub",
-      type: "pub",
-      locality: "downtown",
-      rating: 4.5,
-      status: "active",
-      sales: 25000,
-    },
-    {
-      id: "2",
-      name: "Uptown Lounge",
-      type: "lounge",
-      locality: "uptown",
-      rating: 4.2,
-      status: "active",
-      sales: 32000,
-    },
-    {
-      id: "3",
-      name: "Night Owl Club",
-      type: "nightclub",
-      locality: "downtown",
-      rating: 4.0,
-      status: "inactive",
-      sales: 18000,
-    },
-  ],
   onEdit = () => {},
   onDelete = () => {},
   onStatusChange = () => {},
 }: BarListProps) => {
   return (
-    <div className="w-full bg-background rounded-md border">
+    <div className="w-full bg-white rounded-md border shadow-sm">
       <BarFilters />
       <div className="p-4">
         <Table>
@@ -100,7 +60,7 @@ const BarList = ({
                 <TableCell className="font-medium">{bar.name}</TableCell>
                 <TableCell className="capitalize">{bar.type}</TableCell>
                 <TableCell className="capitalize">{bar.locality}</TableCell>
-                <TableCell>{bar.rating.toFixed(1)}</TableCell>
+                <TableCell>{(bar.rating || 0).toFixed(1)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={bar.status === "active" ? "default" : "secondary"}
@@ -109,7 +69,7 @@ const BarList = ({
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  ${bar.sales.toLocaleString()}
+                  ${bar.rating?.toLocaleString() || "0"}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

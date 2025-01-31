@@ -21,11 +21,11 @@ const ProductsPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-background flex">
         <Sidebar />
         <main className="flex-1 p-6 flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-red-600">
+            <h2 className="text-lg font-semibold text-destructive">
               Error loading products
             </h2>
             <p className="text-sm text-muted-foreground">{error.message}</p>
@@ -37,7 +37,7 @@ const ProductsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
+      <div className="min-h-screen bg-background flex">
         <Sidebar />
         <main className="flex-1 p-6 flex items-center justify-center">
           <LoadingSpinner />
@@ -94,11 +94,11 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-background flex">
       <Sidebar />
       <main className="flex-1 p-6 space-y-6 overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Products</h1>
+          <h1 className="text-3xl font-bold text-foreground">Products</h1>
         </div>
 
         <ProductList

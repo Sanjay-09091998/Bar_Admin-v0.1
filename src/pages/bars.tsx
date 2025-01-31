@@ -5,24 +5,66 @@ import BarDetailsDialog from "@/components/dashboard/BarDetailsDialog";
 import AddBarDialog from "@/components/dashboard/AddBarDialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useBars } from "@/hooks/useBars";
+import { useProducts } from "@/hooks/useProducts";
 
 const BarsPage = () => {
   const [selectedBar, setSelectedBar] = useState(null);
   const [showAddBar, setShowAddBar] = useState(false);
-  const { toast } = useToast();
+  const { bars, isLoading, error, createBar, updateBar, deleteBar } = useBars();
+  const { products } = useProducts();
 
-  const handleAddBar = (newBar) => {
-    toast({
-      title: "Bar Created",
-      description: `${newBar.name} has been successfully created.`,
-    });
-    // In a real app, you would add this to your bars list
-    console.log("New bar created:", newBar);
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <Sidebar />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold text-destructive">
+              Error loading bars
+            </h2>
+            <p className="text-sm text-muted-foreground">{error.message}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <Sidebar />
+        <main className="flex-1 p-6 flex items-center justify-center">
+          <LoadingSpinner />
+        </main>
+      </div>
+    );
+  }
+
+  const handleAddBar = async (data) => {
+    try {
+      await createBar.mutateAsync({
+        name: data.name,
+        type: data.type,
+        description: data.description,
+        address: data.address,
+        map_link: data.mapLink,
+        phone: data.phone,
+        email: data.email,
+        opening_hours: data.openingHours,
+        image_url: data.image,
+        locality: data.locality,
+        products: data.mappedProducts,
+      });
+      setShowAddBar(false);
+    } catch (error) {
+      console.error("Failed to create bar:", error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-white flex">
       <Sidebar />
       <main className="flex-1 p-6 space-y-6 overflow-y-auto">
         <div className="flex items-center justify-between">
@@ -34,8 +76,29 @@ const BarsPage = () => {
         </div>
 
         <BarList
+          bars={bars}
           onViewDetails={(bar) => setSelectedBar(bar)}
-          selectedBar={selectedBar}
+          onEdit={(bar) => {
+            setSelectedBar(bar);
+            setShowAddBar(true);
+          }}
+          onDelete={async (bar) => {
+            try {
+              await deleteBar.mutateAsync(bar.id);
+            } catch (error) {
+              console.error("Failed to delete bar:", error);
+            }
+          }}
+          onStatusChange={async (bar, status) => {
+            try {
+              await updateBar.mutateAsync({
+                id: bar.id,
+                updates: { status },
+              });
+            } catch (error) {
+              console.error("Failed to update bar status:", error);
+            }
+          }}
         />
 
         {selectedBar && (
@@ -43,6 +106,22 @@ const BarsPage = () => {
             bar={selectedBar}
             open={!!selectedBar}
             onOpenChange={() => setSelectedBar(null)}
+            mappedProducts={selectedBar.products?.map((p) => ({
+              id: p.product.id,
+              name: p.product.name,
+              type: p.product.type,
+              price: p.product.bottle_price,
+              age: p.product.age,
+              inStock: p.product.in_stock,
+            }))}
+            availableProducts={products.map((p) => ({
+              id: p.id,
+              name: p.name,
+              type: p.type,
+              price: p.bottle_price,
+              age: p.age,
+              inStock: p.in_stock,
+            }))}
           />
         )}
 
@@ -50,32 +129,12 @@ const BarsPage = () => {
           open={showAddBar}
           onOpenChange={setShowAddBar}
           onSubmit={handleAddBar}
-          availableProducts={[
-            {
-              id: "1",
-              name: "Premium Vodka",
-              type: "Vodka",
-              price: 29.99,
-            },
-            {
-              id: "2",
-              name: "Single Malt Whiskey",
-              type: "Whiskey",
-              price: 89.99,
-            },
-            {
-              id: "3",
-              name: "Craft Gin",
-              type: "Gin",
-              price: 34.99,
-            },
-            {
-              id: "4",
-              name: "Aged Rum",
-              type: "Rum",
-              price: 45.99,
-            },
-          ]}
+          availableProducts={products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            price: p.bottle_price,
+          }))}
         />
       </main>
     </div>

@@ -79,7 +79,7 @@ const MarketingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-background flex">
       <Sidebar />
       <main className="flex-1 p-6 space-y-6 overflow-y-auto">
         <h1 className="text-3xl font-bold">Marketing</h1>

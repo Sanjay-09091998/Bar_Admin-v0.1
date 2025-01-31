@@ -59,16 +59,22 @@ const AddBarDialog = ({
 
   const handleSubmit = () => {
     const newBar = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...formData,
-      rating: (Math.random() * 2 + 3).toFixed(1), // Random rating between 3 and 5
-      status: "active",
-      sales: Math.floor(Math.random() * 50000) + 10000, // Random sales between 10k and 60k
-      locality: formData.address.split(",")[1]?.trim() || "downtown",
-      image:
+      name: formData.name,
+      type: formData.type as "pub" | "lounge" | "nightclub" | "sports_bar",
+      description: formData.description,
+      address: formData.address,
+      map_link: formData.mapLink,
+      phone: formData.phone,
+      email: formData.email,
+      opening_hours: formData.openingHours,
+      image_url:
         imageUrl ||
         "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000",
-      mappedProducts: selectedProducts,
+      locality: formData.address.split(",")[1]?.trim() || "downtown",
+      products: selectedProducts || [],
+      status: "active",
+      rating: 0,
+      updated_at: new Date().toISOString(),
     };
 
     onSubmit(newBar);
@@ -130,7 +136,7 @@ const AddBarDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Bar</DialogTitle>
         </DialogHeader>
@@ -155,9 +161,7 @@ const AddBarDialog = ({
                   />
                 ) : (
                   <div className="h-40 flex items-center justify-center">
-                    <span className="text-muted-foreground">
-                      Click to upload image
-                    </span>
+                    <span className="text-gray-500">Click to upload image</span>
                   </div>
                 )}
               </div>
@@ -284,15 +288,17 @@ const AddBarDialog = ({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={fillMockData} type="button">
-            Fill Mock Data
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+        <DialogFooter className="sticky bottom-0 right-0 left-0 bg-white py-4 border-t mt-6">
+          <div className="flex justify-between items-center w-full">
+            <Button variant="outline" onClick={fillMockData} type="button">
+              Fill Mock Data
             </Button>
-            <Button onClick={handleSubmit}>Create Bar</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit}>Create Bar</Button>
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>
