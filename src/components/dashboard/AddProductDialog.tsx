@@ -18,31 +18,51 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { type Database } from "@/types/supabase";
+
 interface AddProductDialogProps {
+  initialData?: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit?: (data: any) => void;
+  onDelete?: (id: string) => void;
+  onSubmit?: (data: {
+    name: string;
+    type: Database["public"]["Enums"]["product_type"];
+    description?: string;
+    bottlePrice: number;
+    bottleSize: string;
+    age?: string;
+    servingSizes: {
+      small: { size: number; price: string };
+      medium: { size: number; price: string };
+      large: { size: number; price: string };
+    };
+  }) => void;
 }
 
 const AddProductDialog = ({
   open,
   onOpenChange,
   onSubmit = () => {},
+  onDelete,
+  initialData,
 }: AddProductDialogProps) => {
-  const [formData, setFormData] = useState<any>({
-    name: "",
-    type: "",
-    bottlePrice: "",
-    bottleSize: "750", // Default 750ml
-    servingSizes: {
-      small: { size: 45, price: "" },
-      medium: { size: 60, price: "" },
-      large: { size: 90, price: "" },
+  const [formData, setFormData] = useState<any>(
+    initialData || {
+      name: "",
+      type: "",
+      bottlePrice: "",
+      bottleSize: "750", // Default 750ml
+      servingSizes: {
+        small: { size: 45, price: "" },
+        medium: { size: 60, price: "" },
+        large: { size: 90, price: "" },
+      },
+      description: "",
+      age: "",
+      offers: [],
     },
-    description: "",
-    age: "",
-    offers: [],
-  });
+  );
 
   const handleChange = (field: string, value: string) => {
     if (field.startsWith("serving_")) {
@@ -61,30 +81,45 @@ const AddProductDialog = ({
 
   const handleSubmit = () => {
     const newProduct = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...formData,
+      name: formData.name,
+      type: formData.type as Database["public"]["Enums"]["product_type"],
+      description: formData.description || null,
       bottlePrice: parseFloat(formData.bottlePrice),
       bottleSize: parseInt(formData.bottleSize),
+      age: formData.age ? parseInt(formData.age) : null,
       servingSizes: {
         small: {
-          ...formData.servingSizes.small,
+          size: 45,
           price: parseFloat(formData.servingSizes.small.price) || 0,
         },
         medium: {
-          ...formData.servingSizes.medium,
+          size: 60,
           price: parseFloat(formData.servingSizes.medium.price) || 0,
         },
         large: {
-          ...formData.servingSizes.large,
+          size: 90,
           price: parseFloat(formData.servingSizes.large.price) || 0,
         },
       },
-      age: formData.age ? parseInt(formData.age) : undefined,
-      inStock: true,
     };
 
     onSubmit(newProduct);
     onOpenChange(false);
+
+    // Reset form
+    setFormData({
+      name: "",
+      type: "",
+      bottlePrice: "",
+      bottleSize: "750",
+      servingSizes: {
+        small: { size: 45, price: "" },
+        medium: { size: 60, price: "" },
+        large: { size: 90, price: "" },
+      },
+      description: "",
+      age: "",
+    });
   };
 
   const fillMockData = () => {
@@ -137,13 +172,15 @@ const AddProductDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
+          <DialogTitle>
+            {initialData ? "Edit Product" : "Add New Product"}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="grid gap-6">
+          <div className="grid gap-2">
             <Label>Product Name</Label>
             <Input
               placeholder="Enter product name"
@@ -152,7 +189,7 @@ const AddProductDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label>Product Type</Label>
             <Select
               value={formData.type}
@@ -173,10 +210,10 @@ const AddProductDialog = ({
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label>Bottle Details</Label>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="grid gap-2">
                 <Label className="text-sm">Bottle Price ($)</Label>
                 <Input
                   type="number"
@@ -186,7 +223,7 @@ const AddProductDialog = ({
                   onChange={(e) => handleChange("bottlePrice", e.target.value)}
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label className="text-sm">Bottle Size (ml)</Label>
                 <Select
                   value={formData.bottleSize}
@@ -205,10 +242,10 @@ const AddProductDialog = ({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label>Serving Sizes Pricing</Label>
             <div className="grid grid-cols-3 gap-4">
-              <div>
+              <div className="grid gap-2">
                 <Label className="text-sm">45ml Price ($)</Label>
                 <Input
                   type="number"
@@ -220,7 +257,7 @@ const AddProductDialog = ({
                   }
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label className="text-sm">60ml Price ($)</Label>
                 <Input
                   type="number"
@@ -232,7 +269,7 @@ const AddProductDialog = ({
                   }
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label className="text-sm">90ml Price ($)</Label>
                 <Input
                   type="number"
@@ -248,7 +285,7 @@ const AddProductDialog = ({
           </div>
 
           {["Whiskey"].includes(formData.type) && (
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label>Age (Years)</Label>
               <Input
                 type="number"
@@ -259,7 +296,7 @@ const AddProductDialog = ({
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label>Description</Label>
             <Textarea
               placeholder="Enter product description"
@@ -269,15 +306,40 @@ const AddProductDialog = ({
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={fillMockData} type="button">
-            Fill Mock Data
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit}>Create Product</Button>
+        <DialogFooter className="border-t">
+          <div className="flex justify-between w-full items-center">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={fillMockData} type="button">
+                Fill Mock Data
+              </Button>
+              {initialData && (
+                <Button
+                  variant="destructive"
+                  onClick={() => onDelete?.(initialData.id)}
+                  type="button"
+                >
+                  Delete Product
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={
+                  !formData.name ||
+                  !formData.type ||
+                  !formData.bottlePrice ||
+                  !formData.servingSizes.small.price ||
+                  !formData.servingSizes.medium.price ||
+                  !formData.servingSizes.large.price
+                }
+              >
+                {initialData ? "Update Product" : "Create Product"}
+              </Button>
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>

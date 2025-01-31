@@ -16,19 +16,42 @@ export function useProducts() {
 
   const createProduct = useMutation({
     mutationFn: productsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onMutate: async (newProduct) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+
+      // Snapshot the previous value
+      const previousProducts = queryClient.getQueryData(["products"]);
+
+      // Return a context object with the snapshotted value
+      return { previousProducts };
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        ["products"],
+        (old: ProductWithServingSizes[] = []) => {
+          return [...old, data];
+        },
+      );
       toast({
         title: "Product created",
         description: "The product has been created successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback to the previous value if there was an error
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products"], context.previousProducts);
+      }
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -40,52 +63,102 @@ export function useProducts() {
       id: string;
       updates: Parameters<typeof productsApi.update>[1];
     }) => productsApi.update(id, updates),
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      const previousProducts = queryClient.getQueryData(["products"]);
+      queryClient.setQueryData(
+        ["products"],
+        (old: ProductWithServingSizes[] = []) => {
+          return old.map((product) =>
+            product.id === id ? { ...product, ...updates } : product,
+          );
+        },
+      );
+      return { previousProducts };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Product updated",
         description: "The product has been updated successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products"], context.previousProducts);
+      }
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
   const deleteProduct = useMutation({
     mutationFn: productsApi.delete,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      const previousProducts = queryClient.getQueryData(["products"]);
+      queryClient.setQueryData(
+        ["products"],
+        (old: ProductWithServingSizes[] = []) => {
+          return old.filter((product) => product.id !== id);
+        },
+      );
+      return { previousProducts };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({
         title: "Product deleted",
         description: "The product has been deleted successfully.",
       });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products"], context.previousProducts);
+      }
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
   const toggleProductStock = useMutation({
     mutationFn: ({ id, inStock }: { id: string; inStock: boolean }) =>
       productsApi.toggleStock(id, inStock),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    onMutate: async ({ id, inStock }) => {
+      await queryClient.cancelQueries({ queryKey: ["products"] });
+      const previousProducts = queryClient.getQueryData(["products"]);
+      queryClient.setQueryData(
+        ["products"],
+        (old: ProductWithServingSizes[] = []) => {
+          return old.map((product) =>
+            product.id === id ? { ...product, in_stock: inStock } : product,
+          );
+        },
+      );
+      return { previousProducts };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(["products"], context.previousProducts);
+      }
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
