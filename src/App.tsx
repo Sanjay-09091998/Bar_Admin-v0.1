@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import { useRoutes, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Home from "./components/home";
-import ProductsPage from "./pages/products";
+
 import BarsPage from "./pages/bars";
+import ProductsPage from "./pages/products";
 import OrdersPage from "./pages/orders";
 import MarketingPage from "./pages/marketing";
 import AnalyticsPage from "./pages/analytics";
@@ -25,18 +26,18 @@ function App() {
             }
           />
           <Route
-            path="/products"
-            element={
-              <ProtectedRoute>
-                <ProductsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/bars"
             element={
               <ProtectedRoute>
                 <BarsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute>
+                <ProductsPage />
               </ProtectedRoute>
             }
           />
@@ -64,12 +65,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Add Tempo routes */}
+          {import.meta.env.VITE_TEMPO === "true" && (
+            <Route path="/tempobook/*" />
+          )}
         </Routes>
-        {import.meta.env.VITE_TEMPO === "true" && (
-          <Routes>
-            <Route path="/tempobook/*" element={useRoutes(routes)} />
-          </Routes>
-        )}
       </div>
     </Suspense>
   );

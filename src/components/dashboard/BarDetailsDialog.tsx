@@ -11,22 +11,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Star, MapPin, Phone, Mail, Clock } from "lucide-react";
 
 import { type Bar } from "@/lib/api/bars";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  age?: number;
-  type: string;
-  inStock: boolean;
-}
+import { type Product } from "@/lib/api/products";
 
 interface BarDetailsDialogProps {
-  bar: Bar;
+  bar: Bar & { products?: Product[] };
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mappedProducts?: Product[];
-  availableProducts?: Product[];
   onMapProduct?: (productId: string) => void;
 }
 
@@ -34,8 +24,6 @@ const BarDetailsDialog = ({
   bar,
   open,
   onOpenChange,
-  mappedProducts = [],
-  availableProducts = [],
   onMapProduct = () => {},
 }: BarDetailsDialogProps) => {
   return (
@@ -104,7 +92,7 @@ const BarDetailsDialog = ({
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-1"
-                onClick={() => {}}
+                onClick={() => onMapProduct(bar.id)}
               >
                 <Plus className="h-4 w-4" />
                 Add Product
@@ -113,7 +101,7 @@ const BarDetailsDialog = ({
 
             <ScrollArea className="h-[300px] border rounded-md p-4 bg-white">
               <div className="space-y-2">
-                {mappedProducts.map((product) => (
+                {bar.products?.map((product) => (
                   <div
                     key={product.id}
                     className="flex items-center justify-between p-2 border rounded-md bg-white"
@@ -123,15 +111,20 @@ const BarDetailsDialog = ({
                         {product.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        ${product.price} | {product.type}
+                        ${product.bottle_price} | {product.type}
                         {product.age && ` | ${product.age} years`}
                       </div>
                     </div>
-                    <Badge variant={product.inStock ? "default" : "secondary"}>
-                      {product.inStock ? "In Stock" : "Out of Stock"}
+                    <Badge variant={product.in_stock ? "default" : "secondary"}>
+                      {product.in_stock ? "In Stock" : "Out of Stock"}
                     </Badge>
                   </div>
                 ))}
+                {(!bar.products || bar.products.length === 0) && (
+                  <div className="text-center text-gray-500 py-4">
+                    No products mapped to this bar yet
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>

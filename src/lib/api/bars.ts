@@ -6,15 +6,95 @@ export type BarWithProducts = Bar & {
   products: Database["public"]["Tables"]["products"]["Row"][];
 };
 
+export interface BarFilters {
+  search?: string;
+  type?: Database["public"]["Enums"]["bar_type"];
+  locality?: string;
+  status?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
+
 export const barsApi = {
-  async getAll(): Promise<BarWithProducts[]> {
-    const { data: bars, error } = await supabase.from("bars").select(`
+  async getAll({
+    page = 1,
+    perPage = 10,
+    filters,
+    sortBy = "name",
+    sortOrder = "asc",
+  }: {
+    page?: number;
+    perPage?: number;
+    filters?: BarFilters;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  } = {}): Promise<PaginatedResponse<BarWithProducts>> {
+    // First, get the count with a separate query
+    let countQuery = supabase
+      .from("bars")
+      .select("*", { count: "exact", head: true });
+
+    // Apply filters to count query
+    if (filters?.search) {
+      countQuery = countQuery.ilike("name", `%${filters.search}%`);
+    }
+    if (filters?.type) {
+      countQuery = countQuery.eq("type", filters.type);
+    }
+    if (filters?.locality) {
+      countQuery = countQuery.eq("locality", filters.locality);
+    }
+    if (filters?.status) {
+      countQuery = countQuery.eq("status", filters.status);
+    }
+
+    const { count } = await countQuery;
+
+    // Then get the actual data
+    let query = supabase.from("bars").select(
+      `
       *,
-      products:bar_products(product:products(*))
-    `);
+      bar_products (product:products(*))
+      `,
+    );
+
+    // Apply filters
+    if (filters?.search) {
+      query = query.ilike("name", `%${filters.search}%`);
+    }
+    if (filters?.type) {
+      query = query.eq("type", filters.type);
+    }
+    if (filters?.locality) {
+      query = query.eq("locality", filters.locality);
+    }
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    // Apply sorting
+    query = query.order(sortBy, { ascending: sortOrder === "asc" });
+
+    // Apply pagination
+    const from = (page - 1) * perPage;
+    const to = from + perPage - 1;
+    query = query.range(from, to);
+
+    const { data: bars, error } = await query;
 
     if (error) throw error;
-    return bars || [];
+
+    // Transform the nested products data structure
+    const transformedBars = (bars || []).map((bar) => ({
+      ...bar,
+      products:
+        bar.bar_products?.map((p: any) => p.product).filter(Boolean) || [],
+    }));
+
+    return { data: transformedBars, total: count || 0 };
   },
 
   async create(bar: {
@@ -28,35 +108,30 @@ export const barsApi = {
     opening_hours?: string;
     image_url?: string;
     locality?: string;
-    products?: string[];
+    status?: string;
   }) {
-    const { products, ...barData } = bar;
-
-    // Insert bar
+    // Insert bar with default values
     const { data: newBar, error: barError } = await supabase
       .from("bars")
-      .insert([barData])
+      .insert([
+        {
+          ...bar,
+          rating: 0,
+          status: bar.status || "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
     if (barError) throw barError;
     if (!newBar) throw new Error("Failed to create bar");
 
-    // Insert product mappings if any
-    if (products?.length) {
-      const { error: productsError } = await supabase
-        .from("bar_products")
-        .insert(
-          products.map((productId) => ({
-            bar_id: newBar.id,
-            product_id: productId,
-          })),
-        );
-
-      if (productsError) throw productsError;
-    }
-
-    return this.getById(newBar.id);
+    return {
+      ...newBar,
+      products: [],
+    };
   },
 
   async getById(id: string): Promise<BarWithProducts | null> {
@@ -65,20 +140,30 @@ export const barsApi = {
       .select(
         `
         *,
-        products:bar_products(product:products(*))
+        bar_products (product:products(*))
       `,
       )
       .eq("id", id)
       .single();
 
     if (error) throw error;
-    return bar;
+    if (!bar) return null;
+
+    // Transform the nested products data structure
+    return {
+      ...bar,
+      products:
+        bar.bar_products?.map((p: any) => p.product).filter(Boolean) || [],
+    };
   },
 
   async update(id: string, updates: Partial<Bar>) {
     const { data: bar, error } = await supabase
       .from("bars")
-      .update(updates)
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select()
       .single();

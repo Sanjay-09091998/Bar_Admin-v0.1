@@ -2,79 +2,89 @@ import { supabase } from "@/lib/supabase";
 import { Database } from "@/types/supabase";
 
 export type Product = Database["public"]["Tables"]["products"]["Row"];
-export type ProductWithServingSizes = Product & {
-  serving_sizes: Database["public"]["Tables"]["product_serving_sizes"]["Row"][];
-};
+
+export interface ProductFilters {
+  search?: string;
+  type?: string;
+  inStock?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
 
 export const productsApi = {
-  async getAll(): Promise<ProductWithServingSizes[]> {
-    const { data: products, error } = await supabase.from("products").select(`
-        *,
-        serving_sizes:product_serving_sizes(*)
-      `);
+  async getAll({
+    page = 1,
+    perPage = 10,
+    filters,
+    sortBy = "name",
+    sortOrder = "asc",
+  }: {
+    page?: number;
+    perPage?: number;
+    filters?: ProductFilters;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  } = {}): Promise<PaginatedResponse<Product>> {
+    let query = supabase.from("products").select("*", { count: "exact" });
+
+    // Apply filters
+    if (filters?.search) {
+      query = query.ilike("name", `%${filters.search}%`);
+    }
+    if (filters?.type) {
+      query = query.eq("type", filters.type);
+    }
+    if (filters?.inStock !== undefined) {
+      query = query.eq("in_stock", filters.inStock);
+    }
+    if (filters?.minPrice !== undefined) {
+      query = query.gte("bottle_price", filters.minPrice);
+    }
+    if (filters?.maxPrice !== undefined) {
+      query = query.lte("bottle_price", filters.maxPrice);
+    }
+
+    // Apply sorting
+    query = query.order(sortBy, { ascending: sortOrder === "asc" });
+
+    // Apply pagination
+    const from = (page - 1) * perPage;
+    const to = from + perPage - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
-    return products || [];
-  },
-
-  async getById(id: string): Promise<ProductWithServingSizes | null> {
-    const { data: product, error } = await supabase
-      .from("products")
-      .select(
-        `
-        *,
-        serving_sizes:product_serving_sizes(*)
-      `,
-      )
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-    return product;
+    return { data: data || [], total: count || 0 };
   },
 
   async create(product: {
     name: string;
-    type: Database["public"]["Enums"]["product_type"];
+    type: string;
     description?: string;
     bottle_price: number;
     bottle_size: number;
     age?: number;
-    serving_sizes: {
-      size: number;
-      price: number;
-      size_type: string;
-    }[];
+    in_stock?: boolean;
   }) {
-    const { serving_sizes, ...productData } = product;
-
-    // Insert product
-    const { data: newProduct, error: productError } = await supabase
+    const { data, error } = await supabase
       .from("products")
-      .insert([productData])
+      .insert([product])
       .select()
       .single();
 
-    if (productError) throw productError;
-    if (!newProduct) throw new Error("Failed to create product");
-
-    // Insert serving sizes
-    const { error: sizesError } = await supabase
-      .from("product_serving_sizes")
-      .insert(
-        serving_sizes.map((size) => ({
-          product_id: newProduct.id,
-          ...size,
-        })),
-      );
-
-    if (sizesError) throw sizesError;
-
-    return this.getById(newProduct.id);
+    if (error) throw error;
+    if (!data) throw new Error("Failed to create product");
+    return data;
   },
 
   async update(id: string, updates: Partial<Product>) {
-    const { data: product, error } = await supabase
+    const { data, error } = await supabase
       .from("products")
       .update(updates)
       .eq("id", id)
@@ -82,54 +92,12 @@ export const productsApi = {
       .single();
 
     if (error) throw error;
-    return product;
-  },
-
-  async updateServingSizes(
-    productId: string,
-    sizes: {
-      size: number;
-      price: number;
-      size_type: string;
-    }[],
-  ) {
-    // Delete existing sizes
-    const { error: deleteError } = await supabase
-      .from("product_serving_sizes")
-      .delete()
-      .eq("product_id", productId);
-
-    if (deleteError) throw deleteError;
-
-    // Insert new sizes
-    const { error: insertError } = await supabase
-      .from("product_serving_sizes")
-      .insert(
-        sizes.map((size) => ({
-          product_id: productId,
-          ...size,
-        })),
-      );
-
-    if (insertError) throw insertError;
-
-    return this.getById(productId);
+    if (!data) throw new Error("Product not found");
+    return data;
   },
 
   async delete(id: string) {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) throw error;
-  },
-
-  async toggleStock(id: string, inStock: boolean) {
-    const { data: product, error } = await supabase
-      .from("products")
-      .update({ in_stock: inStock })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return product;
   },
 };

@@ -7,13 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useBars } from "@/hooks/useBars";
-import { useProducts } from "@/hooks/useProducts";
 
 const BarsPage = () => {
   const [selectedBar, setSelectedBar] = useState(null);
   const [showAddBar, setShowAddBar] = useState(false);
   const { bars, isLoading, error, createBar, updateBar, deleteBar } = useBars();
-  const { products } = useProducts();
 
   if (error) {
     return (
@@ -55,7 +53,6 @@ const BarsPage = () => {
         opening_hours: data.openingHours,
         image_url: data.image,
         locality: data.locality,
-        products: data.mappedProducts,
       });
       setShowAddBar(false);
     } catch (error) {
@@ -106,22 +103,6 @@ const BarsPage = () => {
             bar={selectedBar}
             open={!!selectedBar}
             onOpenChange={() => setSelectedBar(null)}
-            mappedProducts={selectedBar.products?.map((p) => ({
-              id: p.product.id,
-              name: p.product.name,
-              type: p.product.type,
-              price: p.product.bottle_price,
-              age: p.product.age,
-              inStock: p.product.in_stock,
-            }))}
-            availableProducts={products.map((p) => ({
-              id: p.id,
-              name: p.name,
-              type: p.type,
-              price: p.bottle_price,
-              age: p.age,
-              inStock: p.in_stock,
-            }))}
           />
         )}
 
@@ -129,12 +110,6 @@ const BarsPage = () => {
           open={showAddBar}
           onOpenChange={setShowAddBar}
           onSubmit={handleAddBar}
-          availableProducts={products.map((p) => ({
-            id: p.id,
-            name: p.name,
-            type: p.type,
-            price: p.bottle_price,
-          }))}
         />
       </main>
     </div>
