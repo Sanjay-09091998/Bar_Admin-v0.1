@@ -1,7 +1,6 @@
 import { Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useRoutes } from "react-router-dom";
 import Home from "./components/home";
-
 import BarsPage from "./pages/bars";
 import ProductsPage from "./pages/products";
 import OrdersPage from "./pages/orders";
@@ -12,6 +11,10 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import routes from "tempo-routes";
 
 function App() {
+  // Add Tempo routes
+  const tempoRoutes =
+    import.meta.env.VITE_TEMPO === "true" ? useRoutes(routes) : null;
+
   return (
     <Suspense fallback={<p>Loading...</p>}>
       <div className="min-h-screen bg-background text-foreground">
@@ -65,7 +68,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* Add Tempo routes */}
+          {/* Add Tempo routes catch-all */}
           {import.meta.env.VITE_TEMPO === "true" && (
             <Route path="/tempobook/*" />
           )}

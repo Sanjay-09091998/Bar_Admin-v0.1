@@ -10,5 +10,25 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js"></script>
+    <script>
+      window.onerror = function (msg, url, lineNo, columnNo, error) {
+        console.error(
+          "Error: " +
+            msg +
+            "\nURL: " +
+            url +
+            "\nLine: " +
+            lineNo +
+            "\nColumn: " +
+            columnNo +
+            "\nError object: " +
+            JSON.stringify(error),
+        );
+        return false;
+      };
+      window.addEventListener("unhandledrejection", function (event) {
+        console.error("Unhandled promise rejection:", event.reason);
+      });
+    </script>
   </body>
 </html>
